@@ -19,9 +19,9 @@ export class JwtTokenService implements IJwtService {
     secret: string,
     expiresIn: string
   ): string {
-    return this.jwtService.sign(payload, {
+    return this.jwtService.sign(payload as Record<string, any>, {
       secret: secret,
-      expiresIn: expiresIn,
+      expiresIn: expiresIn as any,
     })
   }
 }
