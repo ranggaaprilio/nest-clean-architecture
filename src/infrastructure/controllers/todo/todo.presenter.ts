@@ -20,4 +20,17 @@ export class TodoPresenter {
     this.createdate = todo.createdDate
     this.updateddate = todo.updatedDate
   }
+
+  toJSONAPI() {
+    return {
+      type: 'todos',
+      id: this.id.toString(),
+      attributes: {
+        content: this.content,
+        isDone: this.isDone,
+        createdate: this.createdate,
+        updateddate: this.updateddate,
+      },
+    }
+  }
 }

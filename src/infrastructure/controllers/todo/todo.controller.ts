@@ -8,6 +8,7 @@ import {
   Post,
   Put,
   Query,
+  Version,
 } from '@nestjs/common'
 import { ApiExtraModels, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { UseCaseProxy } from '../../usecases-proxy/usecases-proxy'
@@ -39,6 +40,7 @@ export class TodoController {
     private readonly addTodoUsecaseProxy: UseCaseProxy<AddTodoUseCases>
   ) {}
 
+  @Version('1')
   @Get('todo')
   @ApiResponseType(TodoPresenter, false)
   async getTodo(@Query('id', ParseIntPipe) id: number) {
@@ -46,6 +48,7 @@ export class TodoController {
     return new TodoPresenter(todo)
   }
 
+  @Version('1')
   @Get('todos')
   @ApiResponseType(TodoPresenter, true)
   async getTodos() {
@@ -53,6 +56,7 @@ export class TodoController {
     return todos.map(todo => new TodoPresenter(todo))
   }
 
+  @Version('1')
   @Put('todo')
   @ApiResponseType(TodoPresenter, true)
   async updateTodo(@Body() updateTodoDto: UpdateTodoDto) {
@@ -61,6 +65,7 @@ export class TodoController {
     return 'success'
   }
 
+  @Version('1')
   @Delete('todo')
   @ApiResponseType(TodoPresenter, true)
   async deleteTodo(@Query('id', ParseIntPipe) id: number) {
@@ -68,6 +73,7 @@ export class TodoController {
     return 'success'
   }
 
+  @Version('1')
   @Post('todo')
   @ApiResponseType(TodoPresenter, true)
   async addTodo(@Body() addTodoDto: AddTodoDto) {

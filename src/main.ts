@@ -1,14 +1,11 @@
-import { ValidationPipe } from '@nestjs/common'
+import { ValidationPipe, VersioningType } from '@nestjs/common'
 import { NestFactory } from '@nestjs/core'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
-import * as cookieParser from 'cookie-parser'
+import cookieParser from 'cookie-parser'
 import { AppModule } from './app.module'
 import { AllExceptionFilter } from './infrastructure/common/filter/exception.filter'
 import { LoggingInterceptor } from './infrastructure/common/interceptors/logger.interceptor'
-import {
-  ResponseFormat,
-  ResponseInterceptor,
-} from './infrastructure/common/interceptors/response.interceptor'
+import { ResponseInterceptor } from './infrastructure/common/interceptors/response.interceptor'
 import { LoggerService } from './infrastructure/logger/logger.service'
 
 async function bootstrap() {
@@ -28,7 +25,10 @@ async function bootstrap() {
   app.useGlobalInterceptors(new ResponseInterceptor())
 
   // base routing
-  app.setGlobalPrefix('api_v1')
+  app.setGlobalPrefix('api')
+
+  //add versioning
+  app.enableVersioning({ type: VersioningType.URI, prefix: 'v' })
 
   app.enableCors()
 
@@ -41,10 +41,9 @@ async function bootstrap() {
       .setVersion('1.0')
       .build()
     const document = SwaggerModule.createDocument(app, config, {
-      extraModels: [ResponseFormat],
       deepScanRoutes: true,
     })
-    SwaggerModule.setup('api', app, document)
+    SwaggerModule.setup('docs', app, document)
   }
 
   await app.listen(3000)

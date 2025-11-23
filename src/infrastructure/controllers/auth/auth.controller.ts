@@ -7,6 +7,7 @@ import {
   Req,
   Request,
   UseGuards,
+  Version,
 } from '@nestjs/common'
 import {
   ApiBearerAuth,
@@ -50,6 +51,7 @@ export class AuthController {
     private readonly isAuthUsecaseProxy: UseCaseProxy<IsAuthenticatedUseCases>
   ) {}
 
+  @Version('1')
   @Post('login')
   @UseGuards(LoginGuard)
   @ApiBearerAuth()
@@ -66,6 +68,7 @@ export class AuthController {
     return 'Login successful'
   }
 
+  @Version('1')
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ description: 'logout' })
@@ -75,6 +78,7 @@ export class AuthController {
     return 'Logout successful'
   }
 
+  @Version('1')
   @Get('is_authenticated')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
@@ -89,6 +93,8 @@ export class AuthController {
     return response
   }
 
+
+  @Version('1')
   @Get('refresh')
   @UseGuards(JwtRefreshGuard)
   @ApiBearerAuth()
