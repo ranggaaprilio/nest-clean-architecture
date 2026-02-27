@@ -10,24 +10,24 @@ import {
 @Entity()
 export class User {
   @PrimaryGeneratedColumn()
-  id: number
+  id!: number
 
   @Index({ unique: true })
   @Column('varchar', { unique: true })
-  username: string
+  username!: string
 
   @Column('text')
-  password: string
+  password!: string
 
   @CreateDateColumn({ name: 'createdate' })
-  createdate: Date
+  createdate!: Date
 
   @UpdateDateColumn({ name: 'updateddate' })
-  updateddate: Date
+  updateddate!: Date
 
   @Column({ nullable: true })
   last_login?: Date
 
   @Column('varchar', { nullable: true })
-  hash_refresh_token: string
+  hash_refresh_token!: string
 }
