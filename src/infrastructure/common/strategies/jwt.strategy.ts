@@ -5,16 +5,24 @@ import { Request } from 'express'
 import { UsecasesProxyModule } from '../../usecases-proxy/usecases-proxy.module'
 import { UseCaseProxy } from '../../usecases-proxy/usecases-proxy'
 import { LoginUseCases } from '../../../usecases/auth/login.usecases'
-import { ExceptionsService } from '../../exceptions/exceptions.service'
-import { LoggerService } from '../../logger/logger.service'
+import {
+  IException,
+  IExceptionToken,
+} from '../../../domain/exceptions/exceptions.interface'
+import { ILogger, ILoggerToken } from '../../../domain/logger/logger.interface'
+import { JWTConfig, JWTConfigToken } from '../../../domain/config/jwt.interface'
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     @Inject(UsecasesProxyModule.LOGIN_USECASES_PROXY)
     private readonly loginUsecaseProxy: UseCaseProxy<LoginUseCases>,
-    private readonly logger: LoggerService,
-    private readonly exceptionService: ExceptionsService
+    @Inject(ILoggerToken)
+    private readonly logger: ILogger,
+    @Inject(IExceptionToken)
+    private readonly exceptionService: IException,
+    @Inject(JWTConfigToken)
+    jwtConfig: JWTConfig
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
@@ -22,12 +30,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
           return request?.cookies?.Authentication
         },
       ]),
-      secretOrKey: process.env.JWT_SECRET,
+      secretOrKey: jwtConfig.getJwtSecret(),
     })
   }
 
   async validate(payload: any) {
-    const user = this.loginUsecaseProxy
+    const user = await this.loginUsecaseProxy
       .getInstance()
       .validateUserForJWTStragtegy(payload.username)
     if (!user) {

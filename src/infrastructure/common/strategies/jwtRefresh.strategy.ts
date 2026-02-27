@@ -2,13 +2,16 @@ import { ExtractJwt, Strategy } from 'passport-jwt'
 import { PassportStrategy } from '@nestjs/passport'
 import { Inject, Injectable } from '@nestjs/common'
 import { Request } from 'express'
-import { EnvironmentConfigService } from '../../config/environment-config/environment-config.service'
 import { UsecasesProxyModule } from '../../usecases-proxy/usecases-proxy.module'
 import { UseCaseProxy } from '../../usecases-proxy/usecases-proxy'
 import { LoginUseCases } from '../../../usecases/auth/login.usecases'
 import { TokenPayload } from '../../../domain/model/auth'
-import { LoggerService } from '../../logger/logger.service'
-import { ExceptionsService } from '../../exceptions/exceptions.service'
+import { ILogger, ILoggerToken } from '../../../domain/logger/logger.interface'
+import {
+  IException,
+  IExceptionToken,
+} from '../../../domain/exceptions/exceptions.interface'
+import { JWTConfig, JWTConfigToken } from '../../../domain/config/jwt.interface'
 
 @Injectable()
 export class JwtRefreshTokenStrategy extends PassportStrategy(
@@ -16,11 +19,14 @@ export class JwtRefreshTokenStrategy extends PassportStrategy(
   'jwt-refresh-token'
 ) {
   constructor(
-    private readonly configService: EnvironmentConfigService,
+    @Inject(JWTConfigToken)
+    jwtConfig: JWTConfig,
     @Inject(UsecasesProxyModule.LOGIN_USECASES_PROXY)
     private readonly loginUsecaseProxy: UseCaseProxy<LoginUseCases>,
-    private readonly logger: LoggerService,
-    private readonly exceptionService: ExceptionsService
+    @Inject(ILoggerToken)
+    private readonly logger: ILogger,
+    @Inject(IExceptionToken)
+    private readonly exceptionService: IException
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
@@ -28,14 +34,14 @@ export class JwtRefreshTokenStrategy extends PassportStrategy(
           return request?.cookies?.Refresh
         },
       ]),
-      secretOrKey: configService.getJwtRefreshSecret(),
+      secretOrKey: jwtConfig.getJwtRefreshSecret(),
       passReqToCallback: true,
     })
   }
 
   async validate(request: Request, payload: TokenPayload) {
     const refreshToken = request.cookies?.Refresh
-    const user = this.loginUsecaseProxy
+    const user = await this.loginUsecaseProxy
       .getInstance()
       .getUserIfRefreshTokenMatches(refreshToken, payload.username)
     if (!user) {

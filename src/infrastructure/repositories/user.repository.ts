@@ -19,10 +19,10 @@ export class DatabaseUserRepository implements UserRepository {
       {
         username: username,
       },
-      { hach_refresh_token: refreshToken }
+      { hash_refresh_token: refreshToken }
     )
   }
-  async getUserByUsername(username: string): Promise<UserM> {
+  async getUserByUsername(username: string): Promise<UserM | null> {
     const adminUserEntity = await this.userEntityRepository.findOne({
       where: {
         username: username,
@@ -50,19 +50,9 @@ export class DatabaseUserRepository implements UserRepository {
     adminUser.password = adminUserEntity.password
     adminUser.createDate = adminUserEntity.createdate
     adminUser.updatedDate = adminUserEntity.updateddate
-    adminUser.lastLogin = adminUserEntity.last_login
-    adminUser.hashRefreshToken = adminUserEntity.hach_refresh_token
+    adminUser.lastLogin = adminUserEntity.last_login ?? new Date(0)
+    adminUser.hashRefreshToken = adminUserEntity.hash_refresh_token
 
     return adminUser
-  }
-
-  private toUserEntity(adminUser: UserM): User {
-    const adminUserEntity: User = new User()
-
-    adminUserEntity.username = adminUser.username
-    adminUserEntity.password = adminUser.password
-    adminUserEntity.last_login = adminUser.lastLogin
-
-    return adminUserEntity
   }
 }

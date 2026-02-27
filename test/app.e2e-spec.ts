@@ -1,7 +1,7 @@
-import * as request from 'supertest'
+import supertest from 'supertest'
 import { Test } from '@nestjs/testing'
 import { ExecutionContext, INestApplication } from '@nestjs/common'
-import * as cookieParser from 'cookie-parser'
+import cookieParser from 'cookie-parser'
 import { UseCaseProxy } from '../src/infrastructure/usecases-proxy/usecases-proxy'
 import { UsecasesProxyModule } from '../src/infrastructure/usecases-proxy/usecases-proxy.module'
 import { LoginUseCases } from '../src/usecases/auth/login.usecases'
@@ -17,9 +17,9 @@ describe('infrastructure/controllers/auth', () => {
 
   beforeAll(async () => {
     loginUseCase = {} as LoginUseCases
-    loginUseCase.getCookieWithJwtToken = jest.fn()
+    loginUseCase.getJwtToken = jest.fn()
     loginUseCase.validateUserForLocalStragtegy = jest.fn()
-    loginUseCase.getCookieWithJwtRefreshToken = jest.fn()
+    loginUseCase.getJwtRefreshToken = jest.fn()
     const loginUsecaseProxyService: UseCaseProxy<LoginUseCases> = {
       getInstance: () => loginUseCase,
     } as UseCaseProxy<LoginUseCases>
@@ -67,7 +67,7 @@ describe('infrastructure/controllers/auth', () => {
     await app.init()
   })
 
-  it(`/POST login should return 201`, async done => {
+  it(`/POST login should return 201`, async () => {
     const createDate = new Date().toISOString()
     const updatedDate = new Date().toISOString()
     ;(loginUseCase.validateUserForLocalStragtegy as jest.Mock).mockReturnValue(
@@ -80,19 +80,15 @@ describe('infrastructure/controllers/auth', () => {
         hashRefreshToken: null,
       })
     )
-    ;(loginUseCase.getCookieWithJwtToken as jest.Mock).mockReturnValue(
-      Promise.resolve(
-        `Authentication=123456; HttpOnly; Path=/; Max-Age=${process.env.JWT_EXPIRATION_TIME}`
-      )
+    ;(loginUseCase.getJwtToken as jest.Mock).mockReturnValue(
+      Promise.resolve({ token: '123456', expiresIn: '1800' })
     )
-    ;(loginUseCase.getCookieWithJwtRefreshToken as jest.Mock).mockReturnValue(
-      Promise.resolve(
-        `Refresh=12345; HttpOnly; Path=/; Max-Age=${process.env.JWT_REFRESH_TOKEN_EXPIRATION_TIME}`
-      )
+    ;(loginUseCase.getJwtRefreshToken as jest.Mock).mockReturnValue(
+      Promise.resolve({ token: '12345', expiresIn: '86400' })
     )
 
-    const result = await request(app.getHttpServer())
-      .post('/auth/login')
+    const result = await supertest(app.getHttpServer())
+      .post('/api/v1/auth/login')
       .send({ username: 'username', password: 'password' })
       .expect(201)
 
@@ -100,13 +96,11 @@ describe('infrastructure/controllers/auth', () => {
       `Authentication=123456; HttpOnly; Path=/; Max-Age=1800`,
       `Refresh=12345; HttpOnly; Path=/; Max-Age=86400`,
     ])
-
-    done()
   })
 
-  it(`/POST logout should return 201`, async done => {
-    const result = await request(app.getHttpServer())
-      .post('/auth/logout')
+  it(`/POST logout should return 201`, async () => {
+    const result = await supertest(app.getHttpServer())
+      .post('/api/v1/auth/logout')
       .set('Cookie', ['Authentication=123456; HttpOnly; Path=/; Max-Age=1800'])
       .send()
       .expect(201)
@@ -115,67 +109,55 @@ describe('infrastructure/controllers/auth', () => {
       'Authentication=; HttpOnly; Path=/; Max-Age=0',
       'Refresh=; HttpOnly; Path=/; Max-Age=0',
     ])
-
-    done()
   })
 
-  it(`/POST login should return 401`, async done => {
+  it(`/POST login should return 401`, async () => {
     ;(loginUseCase.validateUserForLocalStragtegy as jest.Mock).mockReturnValue(
       Promise.resolve(null)
     )
 
-    await request(app.getHttpServer())
-      .post('/auth/login')
+    await supertest(app.getHttpServer())
+      .post('/api/v1/auth/login')
       .send({ username: 'username', password: 'password' })
       .expect(401)
-
-    done()
   })
 
-  it(`/POST Refresh token should return 201`, async done => {
-    ;(loginUseCase.getCookieWithJwtToken as jest.Mock).mockReturnValue(
-      Promise.resolve(
-        `Authentication=123456; HttpOnly; Path=/; Max-Age=${process.env.JWT_EXPIRATION_TIME}`
-      )
+  it(`/POST Refresh token should return 200`, async () => {
+    ;(loginUseCase.getJwtToken as jest.Mock).mockReturnValue(
+      Promise.resolve({ token: '123456', expiresIn: '1800' })
     )
 
-    const result = await request(app.getHttpServer())
-      .get('/auth/refresh')
+    const result = await supertest(app.getHttpServer())
+      .get('/api/v1/auth/refresh')
       .send()
       .expect(200)
 
     expect(result.headers['set-cookie']).toEqual([
       `Authentication=123456; HttpOnly; Path=/; Max-Age=1800`,
     ])
-
-    done()
   })
 
-  it(`/GET is_authenticated should return 200`, async done => {
+  it(`/GET is_authenticated should return 200`, async () => {
     ;(isAuthenticatedUseCases.execute as jest.Mock).mockReturnValue(
       Promise.resolve({ username: 'username' })
     )
 
-    await request(app.getHttpServer())
-      .get('/auth/is_authenticated')
+    await supertest(app.getHttpServer())
+      .get('/api/v1/auth/is_authenticated')
       .set('Cookie', ['Authentication=123456; HttpOnly; Path=/; Max-Age=1800'])
       .send()
       .expect(200)
-
-    done()
   })
 
-  it(`/GET is_authenticated should return 403`, async done => {
+  it(`/GET is_authenticated should return 403`, async () => {
     ;(isAuthenticatedUseCases.execute as jest.Mock).mockReturnValue(
       Promise.resolve({ username: 'username' })
     )
 
-    await request(app.getHttpServer())
-      .get('/auth/is_authenticated')
+    await supertest(app.getHttpServer())
+      .get('/api/v1/auth/is_authenticated')
       .send()
       .expect(403)
-
-    done()
   })
 
   afterAll(async () => {

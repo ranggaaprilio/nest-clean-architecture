@@ -1,64 +1,80 @@
-import { Test } from '@nestjs/testing'
+import { Test, TestingModule } from '@nestjs/testing'
 import { WebsocketsGateway } from './websockets.gateway'
-import { INestApplication } from '@nestjs/common'
-import { Socket, io } from 'socket.io-client'
-import { ConfigModule, ConfigService } from '@nestjs/config'
+import { ILoggerToken } from '../../domain/logger/logger.interface'
+
+const mockLogger = {
+  log: jest.fn(),
+  debug: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  verbose: jest.fn(),
+}
 
 describe('WebsocketsGateway', () => {
   let gateway: WebsocketsGateway
-  let app: INestApplication
-  let ioClient: Socket
-  let configService: ConfigService
 
-  async function createNestApp(...gateways: typeof WebsocketsGateway[]): Promise<INestApplication> {
-    const testingModule = await Test.createTestingModule({
-      imports: [
-        ConfigModule.forRoot({ isGlobal: true }), // Tambahkan ConfigModule
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        WebsocketsGateway,
+        { provide: ILoggerToken, useValue: mockLogger },
       ],
-      providers: gateways,
     }).compile()
 
-    return testingModule.createNestApplication()
-  }
-
-  beforeAll(async () => {
-    // Instantiate the app
-    app = await createNestApp(WebsocketsGateway)
-    configService = app.get<ConfigService>(ConfigService)
-    // Get the gateway instance from the app instance
-    gateway = app.get<WebsocketsGateway>(WebsocketsGateway)
-    // Create a new client that will interact with the gateway
-    const Base_WS_URL = configService.get<string>('BASE_WS_URL')
-    ioClient = io(Base_WS_URL, {
-      autoConnect: false,
-      transports: ['websocket', 'polling'],
-    })
-    // Start the app
-    await app.listen(3001)
+    gateway = module.get<WebsocketsGateway>(WebsocketsGateway)
   })
 
-  afterAll(async () => {
-    // Close the app
-    ioClient.close()
-    await app.close()
+  afterEach(() => {
+    jest.clearAllMocks()
   })
 
   it('should be defined', () => {
     expect(gateway).toBeDefined()
   })
 
-  it('should emit "pong" on "ping"', async () => {
-    ioClient.connect()
-    ioClient.emit('ping', 'Hello world!')
-    await new Promise<void>(resolve => {
-      ioClient.on('connect', () => {
-        expect(ioClient.connected).toBe(true)
-      })
-      ioClient.on('pong', data => {
-        expect(data).toBe('Hello world!')
-        resolve()
-      })
-    })
-    ioClient.disconnect()
+  it('should return pong event with same data on ping', () => {
+    const mockClient = { id: 'test-client-id' } as any
+    const data = 'Hello world!'
+
+    const result = gateway.handleMessage(mockClient, data)
+
+    expect(result).toEqual({ event: 'pong', data: 'Hello world!' })
+    expect(mockLogger.log).toHaveBeenCalledWith(
+      'WebsocketsGateway',
+      'Message received from client id: test-client-id'
+    )
+    expect(mockLogger.debug).toHaveBeenCalledWith(
+      'WebsocketsGateway',
+      'Payload: Hello world!'
+    )
+  })
+
+  it('should log on client connection', () => {
+    const mockClient = { id: 'test-client-id' } as any
+    const mockSockets = new Map()
+    mockSockets.set('test-client-id', mockClient)
+    gateway.io = { sockets: { sockets: mockSockets } } as any
+
+    gateway.handleConnection(mockClient)
+
+    expect(mockLogger.log).toHaveBeenCalledWith(
+      'WebsocketsGateway',
+      'Client id: test-client-id connected'
+    )
+    expect(mockLogger.debug).toHaveBeenCalledWith(
+      'WebsocketsGateway',
+      'Number of connected clients: 1'
+    )
+  })
+
+  it('should log on client disconnection', () => {
+    const mockClient = { id: 'test-client-id' } as any
+
+    gateway.handleDisconnect(mockClient)
+
+    expect(mockLogger.log).toHaveBeenCalledWith(
+      'WebsocketsGateway',
+      'Cliend id:test-client-id disconnected'
+    )
   })
 })

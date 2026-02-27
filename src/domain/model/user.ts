@@ -9,4 +9,9 @@ export class UserWithoutPassword {
 
 export class UserM extends UserWithoutPassword {
   password: string
+
+  toWithoutPassword(): UserWithoutPassword {
+    const { password, ...rest } = this
+    return rest
+  }
 }

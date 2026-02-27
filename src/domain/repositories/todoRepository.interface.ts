@@ -1,5 +1,7 @@
 import { TodoM } from '../model/todo'
 
+export const TodoRepositoryToken = 'TodoRepository'
+
 export interface TodoRepository {
   insert(todo: TodoM): Promise<TodoM>
   findAll(): Promise<TodoM[]>

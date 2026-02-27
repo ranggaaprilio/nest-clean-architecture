@@ -4,8 +4,9 @@ import {
   ExceptionFilter,
   HttpException,
   HttpStatus,
+  Inject,
 } from '@nestjs/common'
-import { LoggerService } from '../../logger/logger.service'
+import { ILogger, ILoggerToken } from '../../../domain/logger/logger.interface'
 import { JSONAPIFormatter } from '../jsonapi/jsonapi.formatter'
 
 interface IError {
@@ -15,11 +16,11 @@ interface IError {
 
 @Catch()
 export class AllExceptionFilter implements ExceptionFilter {
-  private readonly formatter: JSONAPIFormatter
-
-  constructor(private readonly logger: LoggerService) {
-    this.formatter = new JSONAPIFormatter()
-  }
+  constructor(
+    @Inject(ILoggerToken)
+    private readonly logger: ILogger,
+    private readonly formatter: JSONAPIFormatter
+  ) {}
 
   catch(exception: any, host: ArgumentsHost) {
     const ctx = host.switchToHttp()
@@ -49,7 +50,7 @@ export class AllExceptionFilter implements ExceptionFilter {
       {
         timestamp: new Date().toISOString(),
         path: request.url,
-      },
+      }
     )
 
     const errorResponse = this.formatter.formatErrorResponse(
@@ -59,7 +60,7 @@ export class AllExceptionFilter implements ExceptionFilter {
       },
       {
         self: `${request.protocol}://${request.get('host')}${request.url}`,
-      },
+      }
     )
 
     this.logMessage(request, message, status, exception)
@@ -92,7 +93,7 @@ export class AllExceptionFilter implements ExceptionFilter {
     request: any,
     message: IError,
     status: number,
-    exception: any,
+    exception: any
   ) {
     if (status === 500) {
       this.logger.error(
@@ -100,14 +101,14 @@ export class AllExceptionFilter implements ExceptionFilter {
         `method=${request.method} status=${status} code_error=${
           message.code_error ? message.code_error : null
         } message=${message.message ? message.message : null}`,
-        status >= 500 ? exception.stack : '',
+        status >= 500 ? exception.stack : ''
       )
     } else {
       this.logger.warn(
         `End Request for ${request.path}`,
         `method=${request.method} status=${status} code_error=${
           message.code_error ? message.code_error : null
-        } message=${message.message ? message.message : null}`,
+        } message=${message.message ? message.message : null}`
       )
     }
   }

@@ -8,6 +8,18 @@ import { IsAuthenticatedUseCases } from '../isAuthenticated.usecases'
 import { LoginUseCases } from '../login.usecases'
 import { LogoutUseCases } from '../logout.usecases'
 
+function createUserM(overrides: Partial<UserM> = {}): UserM {
+  const user = new UserM()
+  user.id = overrides.id ?? 1
+  user.username = overrides.username ?? 'username'
+  user.password = overrides.password ?? 'password'
+  user.createDate = overrides.createDate ?? new Date()
+  user.updatedDate = overrides.updatedDate ?? new Date()
+  user.lastLogin = overrides.lastLogin ?? null
+  user.hashRefreshToken = overrides.hashRefreshToken ?? 'refresh token'
+  return user
+}
+
 describe('uses_cases/authentication', () => {
   let loginUseCases: LoginUseCases
   let logoutUseCases: LogoutUseCases
@@ -51,26 +63,25 @@ describe('uses_cases/authentication', () => {
     isAuthenticated = new IsAuthenticatedUseCases(adminUserRepo)
   })
 
-  describe('creating a cookie', () => {
-    it('should return a cookie', async () => {
-      const expireIn = '200'
+  describe('creating a token', () => {
+    it('should return a token result', async () => {
+      const expiresIn = '200'
       const token = 'token'
-      ;(jwtConfig.getJwtSecret as jest.Mock).mockReturnValue(() => 'secret')
-      ;(jwtConfig.getJwtExpirationTime as jest.Mock).mockReturnValue(expireIn)
+      ;(jwtConfig.getJwtSecret as jest.Mock).mockReturnValue('secret')
+      ;(jwtConfig.getJwtExpirationTime as jest.Mock).mockReturnValue(expiresIn)
       ;(jwtService.createToken as jest.Mock).mockReturnValue(token)
 
-      expect(await loginUseCases.getCookieWithJwtToken('username')).toEqual(
-        `Authentication=${token}; HttpOnly; Path=/; Max-Age=${expireIn}`
-      )
+      expect(await loginUseCases.getJwtToken('username')).toEqual({
+        token,
+        expiresIn,
+      })
     })
-    it('should return a refresh cookie', async () => {
-      const expireIn = '200'
+    it('should return a refresh token result', async () => {
+      const expiresIn = '200'
       const token = 'token'
-      ;(jwtConfig.getJwtRefreshSecret as jest.Mock).mockReturnValue(
-        () => 'secret'
-      )
+      ;(jwtConfig.getJwtRefreshSecret as jest.Mock).mockReturnValue('secret')
       ;(jwtConfig.getJwtRefreshExpirationTime as jest.Mock).mockReturnValue(
-        expireIn
+        expiresIn
       )
       ;(jwtService.createToken as jest.Mock).mockReturnValue(token)
       ;(bcryptService.hash as jest.Mock).mockReturnValue(
@@ -80,9 +91,10 @@ describe('uses_cases/authentication', () => {
         Promise.resolve(null)
       )
 
-      expect(
-        await loginUseCases.getCookieWithJwtRefreshToken('username')
-      ).toEqual(`Refresh=${token}; HttpOnly; Path=/; Max-Age=${expireIn}`)
+      expect(await loginUseCases.getJwtRefreshToken('username')).toEqual({
+        token,
+        expiresIn,
+      })
       expect(adminUserRepo.updateRefreshToken).toBeCalledTimes(1)
     })
   })
@@ -101,15 +113,7 @@ describe('uses_cases/authentication', () => {
       ).toEqual(null)
     })
     it('should return null because wrong password', async () => {
-      const user: UserM = {
-        id: 1,
-        username: 'username',
-        password: 'password',
-        createDate: new Date(),
-        updatedDate: new Date(),
-        lastLogin: null,
-        hashRefreshToken: 'refresh token',
-      }
+      const user = createUserM()
       ;(adminUserRepo.getUserByUsername as jest.Mock).mockReturnValue(
         Promise.resolve(user)
       )
@@ -125,15 +129,7 @@ describe('uses_cases/authentication', () => {
       ).toEqual(null)
     })
     it('should return user without password', async () => {
-      const user: UserM = {
-        id: 1,
-        username: 'username',
-        password: 'password',
-        createDate: new Date(),
-        updatedDate: new Date(),
-        lastLogin: null,
-        hashRefreshToken: 'refresh token',
-      }
+      const user = createUserM()
       ;(adminUserRepo.getUserByUsername as jest.Mock).mockReturnValue(
         Promise.resolve(user)
       )
@@ -168,15 +164,7 @@ describe('uses_cases/authentication', () => {
     })
 
     it('should return user', async () => {
-      const user: UserM = {
-        id: 1,
-        username: 'username',
-        password: 'password',
-        createDate: new Date(),
-        updatedDate: new Date(),
-        lastLogin: null,
-        hashRefreshToken: 'refresh token',
-      }
+      const user = createUserM()
       ;(adminUserRepo.getUserByUsername as jest.Mock).mockReturnValue(
         Promise.resolve(user)
       )
@@ -201,16 +189,8 @@ describe('uses_cases/authentication', () => {
       ).toEqual(null)
     })
 
-    it('should return null because user not found', async () => {
-      const user: UserM = {
-        id: 1,
-        username: 'username',
-        password: 'password',
-        createDate: new Date(),
-        updatedDate: new Date(),
-        lastLogin: null,
-        hashRefreshToken: 'refresh token',
-      }
+    it('should return null because refresh token does not match', async () => {
+      const user = createUserM()
       ;(adminUserRepo.getUserByUsername as jest.Mock).mockReturnValue(
         Promise.resolve(user)
       )
@@ -227,15 +207,7 @@ describe('uses_cases/authentication', () => {
     })
 
     it('should return user', async () => {
-      const user: UserM = {
-        id: 1,
-        username: 'username',
-        password: 'password',
-        createDate: new Date(),
-        updatedDate: new Date(),
-        lastLogin: null,
-        hashRefreshToken: 'refresh token',
-      }
+      const user = createUserM()
       ;(adminUserRepo.getUserByUsername as jest.Mock).mockReturnValue(
         Promise.resolve(user)
       )
@@ -253,25 +225,14 @@ describe('uses_cases/authentication', () => {
   })
 
   describe('logout', () => {
-    it('should return an array to invalid the cookie', async () => {
-      expect(await logoutUseCases.execute()).toEqual([
-        'Authentication=; HttpOnly; Path=/; Max-Age=0',
-        'Refresh=; HttpOnly; Path=/; Max-Age=0',
-      ])
+    it('should return void', async () => {
+      expect(await logoutUseCases.execute()).toBeUndefined()
     })
   })
 
   describe('isAuthenticated', () => {
-    it('should return an array to invalid the cookie', async () => {
-      const user: UserM = {
-        id: 1,
-        username: 'username',
-        password: 'password',
-        createDate: new Date(),
-        updatedDate: new Date(),
-        lastLogin: null,
-        hashRefreshToken: 'refresh token',
-      }
+    it('should return user without password', async () => {
+      const user = createUserM()
       ;(adminUserRepo.getUserByUsername as jest.Mock).mockReturnValue(
         Promise.resolve(user)
       )

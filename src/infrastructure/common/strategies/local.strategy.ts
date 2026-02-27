@@ -4,16 +4,21 @@ import { Inject, Injectable } from '@nestjs/common'
 import { UsecasesProxyModule } from '../../usecases-proxy/usecases-proxy.module'
 import { UseCaseProxy } from '../../usecases-proxy/usecases-proxy'
 import { LoginUseCases } from '../../../usecases/auth/login.usecases'
-import { LoggerService } from '../../logger/logger.service'
-import { ExceptionsService } from '../../exceptions/exceptions.service'
+import { ILogger, ILoggerToken } from '../../../domain/logger/logger.interface'
+import {
+  IException,
+  IExceptionToken,
+} from '../../../domain/exceptions/exceptions.interface'
 
 @Injectable()
 export class LocalStrategy extends PassportStrategy(Strategy) {
   constructor(
     @Inject(UsecasesProxyModule.LOGIN_USECASES_PROXY)
     private readonly loginUsecaseProxy: UseCaseProxy<LoginUseCases>,
-    private readonly logger: LoggerService,
-    private readonly exceptionService: ExceptionsService
+    @Inject(ILoggerToken)
+    private readonly logger: ILogger,
+    @Inject(IExceptionToken)
+    private readonly exceptionService: IException
   ) {
     super()
   }

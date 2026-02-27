@@ -1,3 +1,5 @@
+export const IJwtServiceToken = 'IJwtService'
+
 export interface IJwtServicePayload {
   username: string
 }

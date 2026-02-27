@@ -16,7 +16,7 @@ export const getTypeOrmModuleOptions = (
     entities: [__dirname + './../../**/*.entity{.ts,.js}'],
     migrations: ['./database/migrations/**/*{.ts,.js}'],
     synchronize: false,
-    schema: process.env.DATABASE_SCHEMA,
+    schema: config.getDatabaseSchema(),
     logging: true,
     migrationsTableName: 'typeorm_migrations',
     migrationsRun: false,

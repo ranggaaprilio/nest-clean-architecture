@@ -29,5 +29,5 @@ export class User {
   last_login?: Date
 
   @Column('varchar', { nullable: true })
-  hach_refresh_token: string
+  hash_refresh_token: string
 }

@@ -1,3 +1,5 @@
+export const IExceptionToken = 'IException'
+
 export interface IFormatExceptionMessage {
   message: string
   code_error?: number

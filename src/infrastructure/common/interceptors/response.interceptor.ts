@@ -11,15 +11,11 @@ import { JSONAPIResponse } from '../jsonapi/jsonapi.interfaces'
 
 @Injectable()
 export class ResponseInterceptor implements NestInterceptor {
-  private readonly formatter: JSONAPIFormatter
-
-  constructor() {
-    this.formatter = new JSONAPIFormatter()
-  }
+  constructor(private readonly formatter: JSONAPIFormatter) {}
 
   intercept(
     context: ExecutionContext,
-    next: CallHandler,
+    next: CallHandler
   ): Observable<JSONAPIResponse> {
     const now = Date.now()
     const httpContext = context.switchToHttp()
@@ -27,7 +23,7 @@ export class ResponseInterceptor implements NestInterceptor {
     const response = httpContext.getResponse()
 
     return next.handle().pipe(
-      map((data) => {
+      map(data => {
         const duration = `${Date.now() - now}ms`
         const resourceType = this.getResourceType(context, request)
 
@@ -55,56 +51,104 @@ export class ResponseInterceptor implements NestInterceptor {
             type,
             id,
             attributes,
-            relationships,
+            relationships
           )
-          return this.formatter.formatDataResponse(resource, undefined, meta, links)
+          return this.formatter.formatDataResponse(
+            resource,
+            undefined,
+            meta,
+            links
+          )
         }
 
         // Handle array of items with toJSONAPI method
-        if (Array.isArray(data) && data.length > 0 && typeof data[0].toJSONAPI === 'function') {
-          const resources = data.map((item) => {
+        if (
+          Array.isArray(data) &&
+          data.length > 0 &&
+          typeof data[0].toJSONAPI === 'function'
+        ) {
+          const resources = data.map(item => {
             const { type, id, attributes, relationships } = item.toJSONAPI()
-            return this.formatter.formatResource(type, id, attributes, relationships)
+            return this.formatter.formatResource(
+              type,
+              id,
+              attributes,
+              relationships
+            )
           })
-          return this.formatter.formatDataResponse(resources, undefined, meta, links)
+          return this.formatter.formatDataResponse(
+            resources,
+            undefined,
+            meta,
+            links
+          )
         }
 
         // Handle plain objects or arrays
         if (Array.isArray(data)) {
           // Check if items have id property
           if (data.length > 0 && data[0].id !== undefined) {
-            return this.formatter.formatListResponse(resourceType, data, meta, links)
+            return this.formatter.formatListResponse(
+              resourceType,
+              data,
+              meta,
+              links
+            )
           }
           // For arrays without id, wrap in a generic resource
-          const resource = this.formatter.formatResource(
-            resourceType,
-            '1',
-            { items: data },
+          const resource = this.formatter.formatResource(resourceType, '1', {
+            items: data,
+          })
+          return this.formatter.formatDataResponse(
+            resource,
+            undefined,
+            meta,
+            links
           )
-          return this.formatter.formatDataResponse(resource, undefined, meta, links)
         }
 
         // Handle plain objects with id
         if (typeof data === 'object' && data.id !== undefined) {
           const { id, ...attributes } = data
-          const resource = this.formatter.formatResource(resourceType, id, attributes)
-          return this.formatter.formatDataResponse(resource, undefined, meta, links)
+          const resource = this.formatter.formatResource(
+            resourceType,
+            id,
+            attributes
+          )
+          return this.formatter.formatDataResponse(
+            resource,
+            undefined,
+            meta,
+            links
+          )
         }
 
         // Handle plain strings or primitives (e.g., "success" messages)
-        if (typeof data === 'string' || typeof data === 'number' || typeof data === 'boolean') {
-          const resource = this.formatter.formatResource(
-            resourceType,
-            '1',
-            { message: data },
+        if (
+          typeof data === 'string' ||
+          typeof data === 'number' ||
+          typeof data === 'boolean'
+        ) {
+          const resource = this.formatter.formatResource(resourceType, '1', {
+            message: data,
+          })
+          return this.formatter.formatDataResponse(
+            resource,
+            undefined,
+            meta,
+            links
           )
-          return this.formatter.formatDataResponse(resource, undefined, meta, links)
         }
 
         // Handle other plain objects
         const resource = this.formatter.formatResource(resourceType, '1', data)
-        return this.formatter.formatDataResponse(resource, undefined, meta, links)
-      }),
+        return this.formatter.formatDataResponse(
+          resource,
+          undefined,
+          meta,
+          links
+        )
+      })
     )
   }
 

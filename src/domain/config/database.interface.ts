@@ -1,3 +1,5 @@
+export const DatabaseConfigToken = 'DatabaseConfig'
+
 export interface DatabaseConfig {
   getDatabaseHost(): string
   getDatabasePort(): number

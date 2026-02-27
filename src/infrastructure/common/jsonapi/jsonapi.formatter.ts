@@ -6,6 +6,9 @@ import {
   JSONAPIErrorSource,
 } from './jsonapi.interfaces'
 
+import { Injectable } from '@nestjs/common'
+
+@Injectable()
 export class JSONAPIFormatter {
   private readonly JSONAPI_VERSION = '1.1'
 
@@ -44,7 +47,7 @@ export class JSONAPIFormatter {
     },
     meta?: {
       [key: string]: any
-    },
+    }
   ): ResourceObject {
     const resource: ResourceObject = {
       type: type,
@@ -89,7 +92,7 @@ export class JSONAPIFormatter {
       next?: string
       describedby?: string
       [key: string]: any
-    },
+    }
   ): JSONAPIResponse {
     const response: JSONAPIResponse = {
       data: data,
@@ -127,7 +130,7 @@ export class JSONAPIFormatter {
     links?: {
       self?: string
       [key: string]: any
-    },
+    }
   ): JSONAPIResponse {
     const response: JSONAPIResponse = {
       errors: errors,
@@ -171,7 +174,7 @@ export class JSONAPIFormatter {
     },
     meta?: {
       [key: string]: any
-    },
+    }
   ): JSONAPIError {
     const error: JSONAPIError = {}
 
@@ -196,7 +199,9 @@ export class JSONAPIFormatter {
    * @param links (Opsional) Objek tautan (misal: self, first, next, last).
    * @returns Objek JSONAPIResponse yang diformat.
    */
-  public formatListResponse<T extends { id: string | number; [key: string]: any }>(
+  public formatListResponse<
+    T extends { id: string | number; [key: string]: any },
+  >(
     type: string,
     items: T[],
     meta?: {
@@ -211,10 +216,10 @@ export class JSONAPIFormatter {
       next?: string
       describedby?: string
       [key: string]: any
-    },
+    }
   ): JSONAPIResponse {
-    const data = items.map((item) =>
-      this.formatResource(type, item.id, this.extractAttributes(item)),
+    const data = items.map(item =>
+      this.formatResource(type, item.id, this.extractAttributes(item))
     )
     return this.formatDataResponse(data, undefined, meta, links)
   }
@@ -226,8 +231,10 @@ export class JSONAPIFormatter {
    * @param item Objek sumber daya.
    * @returns Objek yang berisi atribut.
    */
-  private extractAttributes<T extends { id: string | number; [key: string]: any }>(
-    item: T,
+  private extractAttributes<
+    T extends { id: string | number; [key: string]: any },
+  >(
+    item: T
   ): {
     [key: string]: any
   } {

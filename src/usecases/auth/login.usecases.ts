@@ -7,6 +7,11 @@ import { JWTConfig } from '../../domain/config/jwt.interface'
 import { ILogger } from '../../domain/logger/logger.interface'
 import { UserRepository } from '../../domain/repositories/userRepository.interface'
 
+export interface TokenResult {
+  token: string
+  expiresIn: string
+}
+
 export class LoginUseCases {
   constructor(
     private readonly logger: ILogger,
@@ -16,29 +21,37 @@ export class LoginUseCases {
     private readonly bcryptService: IBcryptService
   ) {}
 
-  async getCookieWithJwtToken(username: string) {
+  async getJwtToken(username: string): Promise<TokenResult> {
     this.logger.log(
       'LoginUseCases execute',
       `The user ${username} have been logged.`
     )
     const payload: IJwtServicePayload = { username: username }
     const secret = this.jwtConfig.getJwtSecret()
-    const expiresIn = this.jwtConfig.getJwtExpirationTime() + 's'
-    const token = this.jwtTokenService.createToken(payload, secret, expiresIn)
-    return `Authentication=${token}; HttpOnly; Path=/; Max-Age=${this.jwtConfig.getJwtExpirationTime()}`
+    const expiresIn = this.jwtConfig.getJwtExpirationTime()
+    const token = this.jwtTokenService.createToken(
+      payload,
+      secret,
+      expiresIn + 's'
+    )
+    return { token, expiresIn }
   }
 
-  async getCookieWithJwtRefreshToken(username: string) {
+  async getJwtRefreshToken(username: string): Promise<TokenResult> {
     this.logger.log(
       'LoginUseCases execute',
       `The user ${username} have been logged.`
     )
     const payload: IJwtServicePayload = { username: username }
     const secret = this.jwtConfig.getJwtRefreshSecret()
-    const expiresIn = this.jwtConfig.getJwtRefreshExpirationTime() + 's'
-    const token = this.jwtTokenService.createToken(payload, secret, expiresIn)
+    const expiresIn = this.jwtConfig.getJwtRefreshExpirationTime()
+    const token = this.jwtTokenService.createToken(
+      payload,
+      secret,
+      expiresIn + 's'
+    )
     await this.setCurrentRefreshToken(token, username)
-    return `Refresh=${token}; HttpOnly; Path=/; Max-Age=${this.jwtConfig.getJwtRefreshExpirationTime()}`
+    return { token, expiresIn }
   }
 
   async validateUserForLocalStragtegy(username: string, pass: string) {
@@ -49,7 +62,6 @@ export class LoginUseCases {
     const match = await this.bcryptService.compare(pass, user.password)
     if (user && match) {
       await this.updateLoginTime(user.username)
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password, ...result } = user
       return result
     }
